@@ -203,7 +203,7 @@ Command *parse(char *msg) {
 		}
 
 		log_debug("Command '%s' parsed as type %d with %d arguments", token, type, argc);
-		
+
 		// parse arguments
 		char **args = dmalloc(argc * sizeof(char *));
 		for (int i = 0; i < argc; i++) {

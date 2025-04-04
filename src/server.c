@@ -59,8 +59,8 @@ int accept_connection(int sfd) {
 	return cfd;
 }
 
-void close_socket(int sockfd) { 
-	close(sockfd); 
+void close_socket(int sockfd) {
+	close(sockfd);
 	log_trace("Socket %d closed", sockfd);
 }
 
@@ -92,15 +92,15 @@ int rediskw(int cfd, HashTable *ht) {
 		char *msg = readline(cfd);
 		msg[strcspn(msg, "\n")] = 0;
 		log_debug("Received command: %s", msg);
-		
+
 		Command *cmd = parse(msg);
 		if (cmd->type == UNKNOWN) {
 			log_warn("Unknown command received from client fd: %d", cfd);
 		}
-		
+
 		char *resp = interpret(ht, cmd);
 		log_debug("Command processed, response type: %c", *resp);
-		
+
 		switch (*resp) {
 		case 'q':
 			log_info("Client requested to quit, fd: %d", cfd);
