@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
 		// Default to test mode (no logs) for benchmarks
 		log_init_testing();
 	}
-	
+
 	// Seed random number generator
 	srand(time(NULL));
 
