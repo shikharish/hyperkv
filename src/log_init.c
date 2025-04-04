@@ -53,7 +53,7 @@ void log_init_testing(void) {
 	// In testing, we want to disable all logs
 	// Setting level to FATAL means only fatal errors will be logged
 	log_set_level(LOG_FATAL);
-	
+
 	// Set quiet mode to true to suppress all console output
 	log_set_quiet(true);
 }
@@ -61,7 +61,7 @@ void log_init_testing(void) {
 // Initialize logging using environment variables
 void log_init_from_env(void) {
 	char *log_level = getenv("HYPERKV_LOG_LEVEL");
-	
+
 	if (log_level != NULL) {
 		if (strcmp(log_level, "DEV") == 0 || strcmp(log_level, "DEBUG") == 0) {
 			log_init_development();
@@ -89,11 +89,11 @@ void log_init_from_env(void) {
 		// No environment variable set, use default
 		log_init_default();
 	}
-	
+
 	// Check for quiet mode
 	char *quiet_mode = getenv("HYPERKV_LOG_QUIET");
-	if (quiet_mode != NULL && (strcmp(quiet_mode, "1") == 0 || strcmp(quiet_mode, "true") == 0 || 
-	                          strcmp(quiet_mode, "TRUE") == 0 || strcmp(quiet_mode, "yes") == 0)) {
+	if (quiet_mode != NULL && (strcmp(quiet_mode, "1") == 0 || strcmp(quiet_mode, "true") == 0 ||
+							   strcmp(quiet_mode, "TRUE") == 0 || strcmp(quiet_mode, "yes") == 0)) {
 		log_set_quiet(true);
 	}
 }

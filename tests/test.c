@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
 			log_init_testing();
 		}
 	}
-	
+
 	double dur;
 	struct timespec start, end;
 	clock_gettime(CLOCK_REALTIME, &start);
