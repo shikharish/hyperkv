@@ -2,6 +2,8 @@
 #define TEST_H
 
 #include "../src/common.h"
+#include "../src/log.h"
+#include "../src/log_init.h"
 
 void test_htable(void);
 void test_parser(void);

@@ -90,7 +90,7 @@ int rediskw(int cfd, HashTable *ht) {
 	log_debug("Started processing commands for client fd: %d", cfd);
 	while (1) {
 		char *msg = readline(cfd);
-		msg[strcspn(msg, "\n")] = 0;
+		// msg[strcspn(msg, "\n")] = 0;
 		log_debug("Received command: %s", msg);
 
 		Command *cmd = parse(msg);

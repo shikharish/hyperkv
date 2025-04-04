@@ -1,10 +1,22 @@
 #include "benchmark.h"
+#include "../src/log.h"
+#include "../src/log_init.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 int main(int argc, char *argv[]) {
+	// Initialize logging in test mode (no logs) for benchmarks
+	// Check environment variables first
+	char *env_log_level = getenv("HYPERKV_LOG_LEVEL");
+	if (env_log_level != NULL) {
+		log_init_from_env();
+	} else {
+		// Default to test mode (no logs) for benchmarks
+		log_init_testing();
+	}
+	
 	// Seed random number generator
 	srand(time(NULL));
 
