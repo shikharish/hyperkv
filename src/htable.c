@@ -1,4 +1,5 @@
 #include "common.h"
+#include "log.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,14 +10,17 @@ HashTableItem HT_DELETED;
 static void htable_insert(HashTable *ht, int type, char *key, void *value);
 
 HashTable *htable_init(int size) {
+	log_debug("Initializing hash table with size %d", size);
 	HashTable *ht = dmalloc(sizeof(HashTable));
 	ht->size = next_prime(size);
 	ht->used = 0;
 	ht->items = calloc(ht->size, sizeof(HashTableItem *));
+	log_debug("Hash table initialized with adjusted size %d", ht->size);
 	return ht;
 }
 
 static HashTableItem *item_init(int type, char *key, void *value) {
+	log_trace("Creating hash table item with key '%s'", key);
 	HashTableItem *item = dmalloc(sizeof(HashTableItem));
 	item->type = type;
 	item->key = strdup(key);
@@ -25,6 +29,7 @@ static HashTableItem *item_init(int type, char *key, void *value) {
 }
 
 static void item_free(HashTableItem *item) {
+	log_trace("Freeing hash table item with key '%s'", item->key);
 	switch (item->type) {
 	case STR_T:
 		free(item->value);
@@ -48,6 +53,7 @@ static bool is_deleted(HashTableItem *item) { return item == &HT_DELETED; }
 void htable_free(HashTable *ht) {
 	if (ht == NULL)
 		return;
+	log_debug("Freeing hash table with size %d", ht->size);
 	for (int i = 0; i < ht->size; i++) {
 		HashTableItem *tmp = ht->items[i];
 		if (tmp != NULL && !is_deleted(tmp))
@@ -55,6 +61,7 @@ void htable_free(HashTable *ht) {
 	}
 	free(ht->items);
 	free(ht);
+	log_debug("Hash table freed successfully");
 }
 
 static void item_swap(HashTable *new_ht, HashTableItem *item) {
@@ -66,6 +73,7 @@ static void htable_resize(HashTable *ht, int new_size) {
 	if (new_size < HT_BASE_SIZE)
 		return;
 
+	log_info("Resizing hash table from %d to %d", ht->size, new_size);
 	HashTable *new_ht = htable_init(new_size);
 	for (int i = 0; i < ht->size; i++) {
 		HashTableItem *cur_item = ht->items[i];
@@ -83,6 +91,7 @@ static void htable_resize(HashTable *ht, int new_size) {
 	new_ht->items = tmp;
 
 	htable_free(new_ht);
+	log_debug("Hash table resize complete, new size: %d", ht->size);
 }
 
 static void htable_resize_up(HashTable *ht) {
@@ -98,6 +107,7 @@ static void htable_resize_down(HashTable *ht) {
 }
 
 static void htable_insert(HashTable *ht, int type, char *key, void *value) {
+	log_debug("Inserting key '%s' into hash table", key);
 	for (int i = 0; i < ht->size; i++) {
 		int hash = hash_func(key, ht->size, i);
 		HashTableItem *cur_item = ht->items[hash];
@@ -106,25 +116,30 @@ static void htable_insert(HashTable *ht, int type, char *key, void *value) {
 			ht->items[hash] = item_init(type, key, value);
 			ht->used++;
 			htable_resize_up(ht);
+			log_debug("Key '%s' inserted successfully at hash %d", key, hash);
 			break;
 		}
 	}
 }
 
 HashTableItem *htable_search(HashTable *ht, char *key) {
+	log_trace("Searching for key '%s' in hash table", key);
 	for (int i = 0; i < ht->size; i++) {
 		int hash = hash_func(key, ht->size, i);
 		HashTableItem *cur_item = ht->items[hash];
 		if (cur_item == NULL)
 			return NULL;
 		if (!is_deleted(cur_item) && strcmp(cur_item->key, key) == 0) {
+			log_trace("Key '%s' found at hash %d", key, hash);
 			return cur_item;
 		}
 	}
+	log_trace("Key '%s' not found in hash table", key);
 	return NULL;
 }
 
 bool htable_exists(HashTable *ht, char *key) {
+	log_trace("Checking if key '%s' exists in hash table", key);
 	HashTableItem *item = htable_search(ht, key);
 	return item != NULL ? true : false;
 }
@@ -147,21 +162,26 @@ char *htable_type(HashTable *ht, char *key) {
 }
 
 bool htable_del(HashTable *ht, char *key) {
+	log_debug("Attempting to delete key '%s' from hash table", key);
 	for (int i = 0; i < ht->size; i++) {
 		int hash = hash_func(key, ht->size, i);
 		HashTableItem *cur_item = ht->items[hash];
 
-		if (cur_item == NULL)
+		if (cur_item == NULL) {
+			log_debug("Key '%s' not found for deletion", key);
 			return false;
+		}
 
 		if (!is_deleted(cur_item) && strcmp(cur_item->key, key) == 0) {
 			item_free(cur_item);
 			ht->items[hash] = &HT_DELETED;
 			ht->used--;
 			htable_resize_down(ht);
+			log_debug("Key '%s' deleted successfully from hash %d", key, hash);
 			return true;
 		}
 	}
+	log_debug("Key '%s' not found for deletion after full search", key);
 	return false;
 }
 
@@ -223,13 +243,17 @@ static bool htable_update_set(HashTable *ht, char *key, char *value) {
 }
 
 bool htable_set(HashTable *ht, char *key, char *value) {
-	// allocate mem for str constants
-	char *dup = strdup(value);
-	if (htable_exists(ht, key)) {
-		htable_update_str(ht, key, dup);
+	log_debug("Setting string key '%s' with value", key);
+	HashTableItem *item = htable_search(ht, key);
+	if (item == NULL) {
+		htable_insert(ht, STR_T, key, strdup(value));
+		return true;
+	}
+	if (item->type != STR_T) {
+		log_warn("Cannot set string value for non-string key '%s' (type: %d)", key, item->type);
 		return false;
 	}
-	htable_insert(ht, STR_T, key, dup);
+	htable_update_str(ht, key, strdup(value));
 	return true;
 }
 

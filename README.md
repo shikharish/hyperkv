@@ -26,6 +26,9 @@ make client
 
 # run the unit tests
 make test
+
+# run benchmarks
+make benchmark
 ```
 
 ## Usage
@@ -75,6 +78,30 @@ keys cmds:      etc:
 - [ ] rename    - [ ]
 - [ ]
 ```
+
+## Performance Benchmarks
+
+HyperKV includes a benchmarking system to measure performance and compare with Redis. The benchmarks test various operations across different data types:
+
+- String operations (SET/GET)
+- Hash operations (HSET/HGET)
+- List operations (LPUSH/LPOP)
+- Set operations (SADD/SISMEMBER)
+
+To run the benchmarks:
+
+```bash
+# Basic benchmarks (HyperKV only)
+make benchmark
+
+# With Redis comparison (requires Redis server and hiredis library)
+make benchmark_redis
+
+# Run with custom parameters
+./benchmark --ops 100000 --type string --key-size 20 --value-size 200
+```
+
+See the `benchmarks/README.md` file for detailed information about the benchmarking system.
 
 ## License
 

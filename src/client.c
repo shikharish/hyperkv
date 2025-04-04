@@ -7,27 +7,35 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "log.h"
+
 int connect_server(char *addr, int port) {
-	struct sockaddr_in serv_addr;
-	// create socket && verification
-	int sfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sfd == -1) {
+	log_debug("Connecting to server at %s:%d", addr, port);
+	int sockfd;
+	struct sockaddr_in servaddr;
+
+	// socket create
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd == -1) {
+		log_fatal("Failed to create socket for client connection");
 		fputs("failed to create socket", stderr);
 		exit(1);
 	}
+	log_trace("Client socket created successfully");
 
 	// assign ip & port
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = inet_addr(addr);
-	serv_addr.sin_port = htons(port);
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_addr.s_addr = inet_addr(addr);
+	servaddr.sin_port = htons(port);
 
-	// connect
-	if (connect(sfd, (SA *)&serv_addr, sizeof(serv_addr)) != 0) {
+	// connect client to server
+	if (connect(sockfd, (SA *)&servaddr, sizeof(servaddr)) != 0) {
+		log_error("Failed to connect to server at %s:%d", addr, port);
 		fputs("failed to connect to server", stderr);
 		exit(1);
 	}
-
-	return sfd;
+	log_info("Connected to server at %s:%d", addr, port);
+	return sockfd;
 }
 
 static void print_quote_encase(char *str) {
@@ -96,6 +104,8 @@ static void parse_resp(char *resp) {
 }
 
 void repl(int sfd) {
+	log_debug("Starting REPL session");
+
 	while (1) {
 		char *inp = malloc(1024);
 		printf("redis-kw> ");

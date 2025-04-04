@@ -1,4 +1,5 @@
 #include "common.h"
+#include "log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -69,56 +70,79 @@ static bool is_type(char *given, char *expected) {
 }
 
 char *exec_del(HashTable *ht, Command *cmd) {
+	log_debug("Executing DEL command with %d arguments", cmd->argc);
 	if (cmd->argc >= 1) {
 		int oks = 0;
 		for (int i = 0; i < cmd->argc; i++) {
+			log_debug("DEL: Deleting key '%s'", cmd->argv[i]);
 			oks += htable_del(ht, cmd->argv[i]);
 		}
+		log_debug("DEL: Successfully deleted %d keys", oks);
 		return reply_integer(oks);
 	}
+	log_warn("DEL: Wrong number of arguments (given %d, expected 1+)", cmd->argc);
 	return reply_err_argc(cmd->argc, "1+");
 }
 
 char *exec_exists(HashTable *ht, Command *cmd) {
+	log_debug("Executing EXISTS command with %d arguments", cmd->argc);
 	if (cmd->argc >= 1) {
 		int oks = 0;
 		for (int i = 0; i < cmd->argc; i++) {
+			log_debug("EXISTS: Checking key '%s'", cmd->argv[i]);
 			oks += htable_exists(ht, cmd->argv[i]);
 		}
+		log_debug("EXISTS: Found %d keys", oks);
 		return reply_integer(oks);
 	}
+	log_warn("EXISTS: Wrong number of arguments (given %d, expected 1+)", cmd->argc);
 	return reply_err_argc(cmd->argc, "1+");
 }
 
 char *exec_type(HashTable *ht, Command *cmd) {
+	log_debug("Executing TYPE command with %d arguments", cmd->argc);
 	if (cmd->argc == 1) {
+		log_debug("TYPE: Checking type of key '%s'", cmd->argv[0]);
 		char *res = htable_type(ht, cmd->argv[0]);
+		log_debug("TYPE: Key '%s' is of type '%s'", cmd->argv[0], res);
 		return reply_string(res);
 	}
+	log_warn("TYPE: Wrong number of arguments (given %d, expected 1)", cmd->argc);
 	return reply_err_argc(cmd->argc, "1");
 }
 
 char *exec_set(HashTable *ht, Command *cmd) {
+	log_debug("Executing SET command with %d arguments", cmd->argc);
 	if (cmd->argc >= 0 && cmd->argc <= 2) {
-		if (cmd->argc == 1)
+		if (cmd->argc == 1) {
+			log_debug("SET: Setting key '%s' to empty string", cmd->argv[0]);
 			htable_set(ht, cmd->argv[0], "");
-		if (cmd->argc == 2)
+		}
+		if (cmd->argc == 2) {
+			log_debug("SET: Setting key '%s' to value", cmd->argv[0]);
 			htable_set(ht, cmd->argv[0], cmd->argv[1]);
+		}
 		return reply_string("OK");
 	}
+	log_warn("SET: Wrong number of arguments (given %d, expected 0..2)", cmd->argc);
 	return reply_err_argc(cmd->argc, "0..2");
 }
 
 char *exec_get(HashTable *ht, Command *cmd) {
+	log_debug("Executing GET command with %d arguments", cmd->argc);
 	if (cmd->argc == 1) {
 		char *type = htable_type(ht, cmd->argv[0]);
+		log_debug("GET: Checking type of key '%s': %s", cmd->argv[0], type);
 		if (is_type(type, "string")) {
 			free(type);
 			char *res = htable_get(ht, cmd->argv[0]);
+			log_debug("GET: Retrieved value for key '%s'", cmd->argv[0]);
 			return reply_string(res);
 		}
+		log_warn("GET: Wrong type for key '%s', expected string, got %s", cmd->argv[0], type);
 		return reply_err_type();
 	}
+	log_warn("GET: Wrong number of arguments (given %d, expected 1)", cmd->argc);
 	return reply_err_argc(cmd->argc, "1");
 }
 

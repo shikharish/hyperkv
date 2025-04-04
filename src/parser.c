@@ -1,10 +1,12 @@
 #include "common.h"
+#include "log.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 static Command *command_init(int type, int argc, char **argv) {
+	log_trace("Initializing command of type %d with %d arguments", type, argc);
 	Command *cmd = dmalloc(sizeof(Command));
 	cmd->type = type;
 	cmd->argc = argc;
@@ -13,6 +15,7 @@ static Command *command_init(int type, int argc, char **argv) {
 }
 
 void command_free(Command *cmd) {
+	log_trace("Freeing command of type %d", cmd->type);
 	for (int i = 0; i < cmd->argc; i++)
 		free(cmd->argv[i]);
 	free(cmd->argv);
@@ -27,6 +30,7 @@ static void parser_advance(Parser *parser) {
 }
 
 static char *parse_id(Parser *parser) {
+	log_trace("Parsing identifier starting at position %d", parser->pos);
 	char *token = dmalloc(sizeof(char));
 	*token = '\0';
 	int n = 1;
@@ -38,6 +42,7 @@ static char *parse_id(Parser *parser) {
 	}
 	token = realloc(token, ++n);
 	token[n - 1] = '\0';
+	log_trace("Parsed identifier: '%s'", token);
 	return token;
 }
 
@@ -104,6 +109,7 @@ Parser *parser_init(char *msg) {
 }
 
 void parser_free(Parser *parser) {
+	log_trace("Freeing parser at position %d", parser->pos);
 	free(parser->string);
 	free(parser);
 }
@@ -191,21 +197,26 @@ Command *parse(char *msg) {
 			type = QUIT;
 		else if (strcmp(token, "shutdown") == 0)
 			type = SHUTDOWN;
-		else
+		else {
+			log_warn("Unknown command: '%s'", token);
 			type = UNKNOWN;
+		}
 
+		log_debug("Command '%s' parsed as type %d with %d arguments", token, type, argc);
+		
 		// parse arguments
 		char **args = dmalloc(argc * sizeof(char *));
 		for (int i = 0; i < argc; i++) {
 			token = get_next_token(parser);
+			log_trace("Parsed argument %d: '%s'", i, token);
 			args[i] = dmalloc((strlen(token) + 1) * sizeof(char));
 			strcpy(args[i], token);
 		}
 		cmd = command_init(type, argc, args);
 	} else {
+		log_warn("Empty command, returning NOOP");
 		cmd = command_init(NOOP, 0, NULL);
 	}
-
 	parser_free(parser);
 	free(token);
 	return cmd;
